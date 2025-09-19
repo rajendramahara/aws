@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>My App</title>
+</head>
+
+<body>
+    <h1>Welcome!</h1>
+    <button onclick="login('code')">Login with code</button>
+    <button onclick="login('token')">Login with token</button>
+
+    <script>
+        function login(responseType) {
+            const domain = 'us-east-1wqvhyixdd.auth.us-east-1.amazoncognito.com';
+            const clientId = '7m4mo2aqfprcrvlo0irll1shlr';
+            const redirectUri = 'http://localhost:8000/callback.html';
+            // const responseType = 'code';
+            const scope = 'openid email profile';
+
+            const url = `https://${domain}/login?response_type=${responseType}&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}`;
+
+            // https://us-east-1wqvhyixdd.auth.us-east-1.amazoncognito.com/login?client_id=7m4mo2aqfprcrvlo0irll1shlr&response_type=code&scope=email+openid+profile&redirect_uri=http%3A%2F%2Flocalhost%3A8000%2Fcallback.html
+
+            window.location.href = url;
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Callback</title>
+</head>
+
+<body>
+    <h1>Processing Login...</h1>
+    <script>
+        function setTokensInLocalStorage(tokens) {
+            localStorage.setItem('updatedAt', new Date().toISOString());
+            if (tokens.id_token) {
+                localStorage.setItem('id_token', tokens.id_token);
+                const user = parseJwt(tokens.id_token);
+                if (user) {
+                    localStorage.setItem('username', user['cognito:username'] || '');
+                    localStorage.setItem('email', user.email || '');
+                    localStorage.setItem('phone_number', user.phone_number || '');
+                }
+            }
+            if (tokens.access_token) {
+                localStorage.setItem('access_token', tokens.access_token);
+            }
+            if (tokens.refresh_token) {
+                localStorage.setItem('refresh_token', tokens.refresh_token);
+            }
+            if (tokens.expires_in) {
+                localStorage.setItem('expires_in', tokens.expires_in);
+            }
+            if (tokens.token_type) {
+                localStorage.setItem('token_type', tokens.token_type);
+            }
+        }
+
+        async function getTokens(code, clientId, clientSecret, redirectUri, domain) {
+            const tokenUrl = `https://${domain}/oauth2/token`;
+            const authHeader = btoa(`${clientId}:${clientSecret}`);
+
+            const params = new URLSearchParams({
+                grant_type: "authorization_code",
+                client_id: clientId,
+                code: code,
+                redirect_uri: redirectUri,
+            });
+
+            const response = await fetch(tokenUrl, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "Authorization": `Basic ${authHeader}`,
+                },
+                body: params.toString(),
+            });
+
+            console.log("Token Fetch Response:", response);
+            if (!response.ok) {
+                console.error("Token request failed:", response.statusText);
+                return;
+            }
+
+            const tokens = await response.json();
+            console.log("Token Response:", tokens);
+
+            setTokensInLocalStorage(tokens);
+        }
+
+        function parseHash(hash) {
+            const params = {};
+            hash.substring(1).split("&").forEach(pair => {
+                const [key, value] = pair.split("=");
+                params[key] = decodeURIComponent(value);
+            });
+            return params;
+        }
+
+        function parseJwt(token) {
+            const base64Url = token.split('.')[1];
+            if (!base64Url) return null;
+
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+
+            return JSON.parse(jsonPayload);
+        }
+
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get('code');
+
+        if (code) {
+            const clientId = "7m4mo2aqfprcrvlo0irll1shlr";
+            const clientSecret = "srhtladdp83mc1d5ueqjh87uab468ml0nsgt31cprif532g24vu";
+            const redirectUri = "http://localhost:8000/callback.html";
+            const domain = "us-east-1wqvhyixdd.auth.us-east-1.amazoncognito.com";
+
+            getTokens(code, clientId, clientSecret, redirectUri, domain);
+            localStorage.setItem('cognito_code', code);
+        } else {
+            const tokens = parseHash(window.location.hash);
+            setTokensInLocalStorage(tokens);
+        }
+        setTimeout(() => {
+            window.location.href = 'index.html';
+        }, 5000);
+    </script>
+</body>
+
+</html>
