@@ -1,0 +1,60 @@
+import boto3
+import json
+import datetime
+
+s3 = boto3.client('s3')
+
+def lambda_handler(event, context):
+    log_bucket = "your-log-bucket-name"
+    username = event.get("username", "unknown")
+
+    log_data = {
+        "username": username,
+        "timestamp": datetime.datetime.utcnow().isoformat(),
+        "ip": event.get("ip"),
+        "user_agent": event.get("user_agent"),
+        "status": "SUCCESS"  # or FAILURE
+    }
+
+    # File name example: logs/username-2025-01-01T10:00:00.json
+    object_key = f"logs/{username}-{datetime.datetime.utcnow().isoformat()}.json"
+
+    s3.put_object(
+        Bucket=log_bucket,
+        Key=object_key,
+        Body=json.dumps(log_data)
+    )
+
+    return {"message": "Log saved"}
+
+
+
+
+import boto3
+import json
+
+s3 = boto3.client('s3')
+
+def lambda_handler(event, context):
+    bucket = "your-log-bucket-name"
+    username = event["username"]  # user whose logs you want to show
+
+    # Step 1: List all log files for this user
+    files = s3.list_objects_v2(
+        Bucket=bucket,
+        Prefix=f"logs/{username}"
+    )
+
+    logs = []
+
+    # Step 2: Read each log file
+    for obj in files.get("Contents", []):
+        data = s3.get_object(Bucket=bucket, Key=obj["Key"])
+        content = data["Body"].read().decode("utf-8")
+        logs.append(json.loads(content))
+
+    # Step 3: Return logs to frontend
+    return {
+        "statusCode": 200,
+        "body": json.dumps(logs)
+    }
